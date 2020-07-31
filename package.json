@@ -20,11 +20,11 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@orbit/coordinator": "^0.17.0-beta.3",
-    "@orbit/core": "^0.17.0-beta.3",
-    "@orbit/data": "^0.17.0-beta.3",
-    "@orbit/jsonapi": "^0.17.0-beta.3",
-    "@orbit/memory": "^0.17.0-beta.3"
+    "@orbit/coordinator": "^0.17.0-beta.5",
+    "@orbit/core": "^0.17.0-beta.4",
+    "@orbit/data": "^0.17.0-beta.5",
+    "@orbit/jsonapi": "^0.17.0-beta.5",
+    "@orbit/memory": "^0.17.0-beta.5"
   },
   "devDependencies": {
     "@types/qunit": "^2.9.0",
