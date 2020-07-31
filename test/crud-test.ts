@@ -111,6 +111,9 @@ module('Simple CRUD', function (hooks) {
           ...record.attributes,
           // In addition, `csId` is a new attribute assigned by the server
           csId: 'mariko'
+        },
+        meta: {
+          version: 20
         }
       },
       'created record matches expectations'
@@ -236,19 +239,21 @@ module('Simple CRUD', function (hooks) {
       .withArgs('/api/realms/first-ephemeral-realm/cards/7')
       .returns(jsonapiResponse(200, patchResponse));
 
-    // Question: Is `meta.version` updated along with the record?
     await memory.update((t) =>
       t.updateRecord({
         type: record.type,
         id: record.id,
         attributes: {
           favoriteColor: 'orange'
-        }
+        },
+        // Include record meta here to ensure that `version` is passed
+        meta: record.meta
       })
     );
 
-    // FIXME: This will fail because `meta` is not passed
-    // QUESTION: Why is it not expected that `id` would be passed?
+    // TODO: This will fail because `id` apparently is not passed. This
+    // is in violation of the JSON:API spec.
+    // Was this an oversight in the request data?
     assert.deepEqual(
       JSON.parse(fetchStub.firstCall.lastArg.body),
       patchRequest,
@@ -277,9 +282,21 @@ module('Simple CRUD', function (hooks) {
           // applied successfully
           ...patchResponse.data.attributes
         },
+        relationships: {
+          csAdoptsFrom: {
+            data: {
+              // The related record's local `id` needs to be mapped from its
+              // `remoteId` key in the response.
+              id: memory.keyMap.keyToId(
+                'cards',
+                'remoteId',
+                patchResponse.data.relationships.csAdoptsFrom.data.id
+              ),
+              type: 'cards'
+            }
+          }
+        },
         meta: {
-          // FIXME - currently remains 39, but should be 40 (as in the response)
-          // TODO - need to fix granular updates to `meta` in Orbit
           ...patchResponse.data.meta
         }
       },
