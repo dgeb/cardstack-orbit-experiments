@@ -1,11 +1,13 @@
 import JSONAPISource, {
   JSONAPIURLBuilder,
-  JSONAPISerializer,
-  Resource
+  JSONAPIResourceSerializer,
+  Resource,
+  JSONAPISerializers
 } from '@orbit/jsonapi';
 import MemorySource from '@orbit/memory';
 import { KeyMap, Record, Schema, Source, Transform } from '@orbit/data';
 import Coordinator, { RequestStrategy, SyncStrategy } from '@orbit/coordinator';
+import { buildSerializerClassFor, NoopSerializer } from '@orbit/serializers';
 
 function createSchema(): Schema {
   return new Schema({
@@ -44,27 +46,7 @@ function createMemorySource(schema: Schema, keyMap: KeyMap): MemorySource {
 function createRemoteSource(schema: Schema, keyMap: KeyMap): JSONAPISource {
   class URLBuilder extends JSONAPIURLBuilder {}
 
-  class Serializer extends JSONAPISerializer {
-    resourceKey(/* type: string */) {
-      return 'remoteId';
-    }
-
-    resourceType(type: string): string {
-      return type;
-    }
-
-    resourceRelationship(type: string, relationship: string): string {
-      return relationship;
-    }
-
-    recordType(resourceType: string): string {
-      return resourceType;
-    }
-
-    recordRelationship(type: string, resourceRelationship: string): string {
-      return resourceRelationship;
-    }
-
+  class CustomResourceSerializer extends JSONAPIResourceSerializer {
     deserializeAttributes(record: Record, resource: Resource): void {
       if (resource.attributes) {
         record.attributes = resource.attributes;
@@ -76,6 +58,14 @@ function createRemoteSource(schema: Schema, keyMap: KeyMap): JSONAPISource {
         resource.attributes = record.attributes;
       }
     }
+
+    serializeMeta(resource: Resource, record: Record): void {
+      // Include record meta in resource
+      // Note: This is not done by default but is needed to pass `version`
+      if (record.meta) {
+        resource.meta = record.meta;
+      }
+    }
   }
 
   return new JSONAPISource({
@@ -84,7 +74,10 @@ function createRemoteSource(schema: Schema, keyMap: KeyMap): JSONAPISource {
     schema,
     namespace: 'api/realms/first-ephemeral-realm',
     URLBuilderClass: URLBuilder,
-    SerializerClass: Serializer
+    serializerClassFor: buildSerializerClassFor({
+      [JSONAPISerializers.Resource]: CustomResourceSerializer,
+      [JSONAPISerializers.ResourceTypePath]: NoopSerializer
+    })
   });
 }
 
